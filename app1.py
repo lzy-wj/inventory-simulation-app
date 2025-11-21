@@ -4,6 +4,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import graphviz
+import matplotlib.font_manager as fm
+import os
+import urllib.request
 
 st.set_page_config(
     page_title="(s, S) 库存策略仿真平台",
@@ -12,9 +15,42 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 配置中文字体（适配云端部署）
+def setup_chinese_font():
+    """配置中文字体，支持本地和云端环境"""
+    # 尝试使用系统字体
+    font_list = ['SimHei', 'Microsoft YaHei', 'PingFang SC', 'Arial Unicode MS', 'DejaVu Sans']
+    
+    for font in font_list:
+        if font in [f.name for f in fm.fontManager.ttflist]:
+            plt.rcParams['font.sans-serif'] = [font]
+            plt.rcParams['axes.unicode_minus'] = False
+            return
+    
+    # 如果系统字体都不可用，下载开源字体（仅云端需要）
+    font_dir = os.path.expanduser('~/.fonts')
+    os.makedirs(font_dir, exist_ok=True)
+    font_path = os.path.join(font_dir, 'NotoSansCJK-Regular.ttc')
+    
+    if not os.path.exists(font_path):
+        try:
+            # 使用 Google Fonts 的 Noto Sans SC
+            url = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf'
+            urllib.request.urlretrieve(url, font_path)
+            # 重新加载字体缓存
+            fm._load_fontmanager(try_read_cache=False)
+        except:
+            pass
+    
+    # 添加字体到 matplotlib
+    if os.path.exists(font_path):
+        fm.fontManager.addfont(font_path)
+        plt.rcParams['font.sans-serif'] = ['Noto Sans CJK SC']
+    
+    plt.rcParams['axes.unicode_minus'] = False
+
 plt.style.use('seaborn-v0_8-whitegrid')
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'PingFang SC', 'Arial Unicode MS']
-plt.rcParams['axes.unicode_minus'] = False
+setup_chinese_font()
 
 class InventorySimulation:
     def __init__(self, params):
