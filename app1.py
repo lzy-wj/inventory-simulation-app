@@ -15,39 +15,35 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 配置中文字体（适配云端部署）
+# 配置中文字体（云端部署优化）
 def setup_chinese_font():
-    """配置中文字体，支持本地和云端环境"""
-    # 尝试使用系统字体
-    font_list = ['SimHei', 'Microsoft YaHei', 'PingFang SC', 'Arial Unicode MS', 'DejaVu Sans']
-    
-    for font in font_list:
-        if font in [f.name for f in fm.fontManager.ttflist]:
-            plt.rcParams['font.sans-serif'] = [font]
+    """配置中文字体，优先使用项目内字体文件"""
+    try:
+        # 方案1：尝试使用项目内的字体文件
+        font_path = os.path.join(os.path.dirname(__file__), 'fonts', 'SourceHanSansCN-Regular.otf')
+        if os.path.exists(font_path):
+            fm.fontManager.addfont(font_path)
+            plt.rcParams['font.sans-serif'] = ['Source Han Sans CN', 'sans-serif']
             plt.rcParams['axes.unicode_minus'] = False
             return
-    
-    # 如果系统字体都不可用，下载开源字体（仅云端需要）
-    font_dir = os.path.expanduser('~/.fonts')
-    os.makedirs(font_dir, exist_ok=True)
-    font_path = os.path.join(font_dir, 'NotoSansCJK-Regular.ttc')
-    
-    if not os.path.exists(font_path):
-        try:
-            # 使用 Google Fonts 的 Noto Sans SC
-            url = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf'
-            urllib.request.urlretrieve(url, font_path)
-            # 重新加载字体缓存
-            fm._load_fontmanager(try_read_cache=False)
-        except:
-            pass
-    
-    # 添加字体到 matplotlib
-    if os.path.exists(font_path):
-        fm.fontManager.addfont(font_path)
-        plt.rcParams['font.sans-serif'] = ['Noto Sans CJK SC']
-    
-    plt.rcParams['axes.unicode_minus'] = False
+        
+        # 方案2：尝试使用系统字体（Noto字体由packages.txt安装，优先使用）
+        font_list = ['Noto Sans CJK SC', 'Noto Sans CJK JP', 'SimHei', 'Microsoft YaHei', 'PingFang SC', 'WenQuanYi Micro Hei']
+        available_fonts = [f.name for f in fm.fontManager.ttflist]
+        
+        for font in font_list:
+            if font in available_fonts:
+                plt.rcParams['font.sans-serif'] = [font]
+                plt.rcParams['axes.unicode_minus'] = False
+                return
+        
+        # 方案3：使用 DejaVu Sans 作为后备（虽然不支持中文，但至少不会报错）
+        plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+        plt.rcParams['axes.unicode_minus'] = False
+        
+    except Exception as e:
+        st.warning(f"字体加载遇到问题，使用默认字体。错误: {e}")
+        plt.rcParams['axes.unicode_minus'] = False
 
 plt.style.use('seaborn-v0_8-whitegrid')
 setup_chinese_font()
